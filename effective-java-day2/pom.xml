@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>pl.com.bottega</groupId>
-    <artifactId>effective-java</artifactId>
+    <artifactId>effective-java-day2</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
-        <module>effective-java-day1</module>
-        <module>effective-java-day2</module>
+        <module>oo-by-atdd-tdd</module>
+        <module>refactoring-to-oo</module>
     </modules>
 
 </project>
