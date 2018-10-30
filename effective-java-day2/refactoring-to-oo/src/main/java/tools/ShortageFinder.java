@@ -4,7 +4,6 @@ import external.CurrentStock;
 import persistence.entities.DemandEntity;
 import persistence.entities.ProductionEntity;
 import persistence.entities.ShortageEntity;
-import persistence.enums.DeliverySchema;
 
 import java.time.LocalDate;
 import java.util.LinkedList;
@@ -14,6 +13,8 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 public class ShortageFinder {
+
+    static StrategyFactory factory;
 
     /**
      * Production at day of expected delivery is quite complex:
@@ -36,16 +37,17 @@ public class ShortageFinder {
     public static List<ShortageEntity> findShortages(LocalDate today, int daysAhead, CurrentStock stock,
                                                      List<ProductionEntity> productions, List<DemandEntity> demands,
                                                      String productRefNo) {
+
         List<LocalDate> dates = Stream.iterate(today, date -> date.plusDays(1))
                 .limit(daysAhead)
                 .collect(toList());
 
-        // Adapter -> Custom Collection 1
-        // motivation: ukrycie complexity struktury
+        // Krok 1. Adapter -> Custom Collection 1
+        // motywacja: ukrycie operacji na skomplikowanej strukrze
         ProductionOutputs outputs = new ProductionOutputs(productions);
 
-        // Adapter -> Custom Collection 2
-        // motivation: ukrycie complexity struktury
+        // Krok 3. Adapter -> Custom Collection 2
+        // motywacja: ukrycie operacji na skomplikowanej strukrze
         Demands demandsPerDay = new Demands(demands);
 
         // TODO ASK including locked or only proper parts
@@ -54,23 +56,17 @@ public class ShortageFinder {
 
         List<ShortageEntity> gap = new LinkedList<>();
         for (LocalDate day : dates) {
+            // Krok 4. Null Object Pattern
+            // motywacja: uproszczenie logiki przez przeniesienie/pozbycie się if (ob != null)
             Demands.DailyDemand demand = demandsPerDay.get(day);
+            // Krok 2.  Null Object Pattern
+            // motywacja: uproszczenie logiki przez przeniesienie/pozbycie się if (ob != null)
             long produced = outputs.getOutput(day);
 
-            long levelOnDelivery;
-            if (demand.getDeliverySchema() == DeliverySchema.atDayStart) {
-                levelOnDelivery = level - demand.getLevel();
-            } else if (demand.getDeliverySchema() == DeliverySchema.tillEndOfDay) {
-                levelOnDelivery = level - demand.getLevel() + produced;
-            } else if (demand.getDeliverySchema() == DeliverySchema.every3hours) {
-                // TODO WTF ?? we need to rewrite that app :/
-                throw new RuntimeException();
-            } else {
-                // TODO implement other variants
-                throw new RuntimeException();
-            }
+            long levelOnDelivery = factory.pickCalculationVariant(demand.getDeliverySchema())
+                    .calculateLevelOnDelivery(level, demand, produced);
 
-            if (!(levelOnDelivery >= 0)) {
+            if (levelOnDelivery < 0) {
                 ShortageEntity entity = new ShortageEntity();
                 entity.setRefNo(productRefNo);
                 entity.setFound(LocalDate.now());
