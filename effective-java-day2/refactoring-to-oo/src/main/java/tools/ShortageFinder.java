@@ -35,15 +35,16 @@ public class ShortageFinder {
      * (increase amount in scheduled transport or organize extra transport at given time)
      */
     public static List<ShortageEntity> findShortages(LocalDate today, int daysAhead, CurrentStock stock,
-                                                     List<ProductionEntity> productions, List<DemandEntity> demands, String productRefNo) {
+                                                     List<ProductionEntity> productions, List<DemandEntity> demands,
+                                                     String productRefNo) {
         List<LocalDate> dates = Stream.iterate(today, date -> date.plusDays(1))
                 .limit(daysAhead)
                 .collect(toList());
 
-        HashMap<LocalDate, ProductionEntity> outputs = new HashMap<>();
-        for (ProductionEntity production : productions) {
-            outputs.put(production.getStart().toLocalDate(), production);
-        }
+        // Adapter -> Custom Collection
+        // motivation: ukrycie complexity struktury
+        ProductionOutputs outputs = new ProductionOutputs(productions);
+
         HashMap<LocalDate, DemandEntity> demandsPerDay = new HashMap<>();
         for (DemandEntity demand1 : demands) {
             demandsPerDay.put(demand1.getDay(), demand1);
@@ -57,17 +58,10 @@ public class ShortageFinder {
         for (LocalDate day : dates) {
             DemandEntity demand = demandsPerDay.get(day);
             if (demand == null) {
-                ProductionEntity production = outputs.get(day);
-                if (production != null) {
-                    level += production.getOutput();
-                }
+                level += outputs.getOutput(day);
                 continue;
             }
-            long produced = 0;
-            ProductionEntity production = outputs.get(day);
-            if (production != null) {
-                produced = production.getOutput();
-            }
+            long produced = outputs.getOutput(day);
 
             long levelOnDelivery;
             if (Util.getDeliverySchema(demand) == DeliverySchema.atDayStart) {
