@@ -10,8 +10,10 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>oo-by-atdd-tdd</module>
         <module>refactoring-to-oo</module>
+        <!--<module>java-advanced-exercises</module>-->
+        <!--<module>java-advanced-agent</module>-->
+        <!--<module>java-advanced-processor</module>-->
     </modules>
 
 </project>

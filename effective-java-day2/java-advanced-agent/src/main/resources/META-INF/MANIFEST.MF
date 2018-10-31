@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Can-Redefine-Classes: true
+Can-Set-Native-Method-Prefix: true
+Agent-Class: workshop.java.advanced.javaagents.HackyAgent
+Premain-Class: workshop.java.advanced.javaagents.HackyAgent
+Can-Retransform-Classes: true
+Created-By: Apache Maven Bundle Plugin

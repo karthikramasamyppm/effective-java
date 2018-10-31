@@ -8,12 +8,12 @@ import external.JiraService;
 import external.NotificationsService;
 import external.StockService;
 import persistence.dao.DemandDao;
-import persistence.dao.ProductionDao;
 import persistence.dao.ShortageDao;
 import persistence.entities.DemandEntity;
 import persistence.entities.ManualAdjustmentEntity;
 import persistence.entities.ShortageEntity;
-import tools.ShortageFinder;
+import shortages.ShortageForecast;
+import shortages.ShortageForecastRepository;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -22,10 +22,10 @@ import java.util.List;
 public class LogisticServiceImpl implements LogisticService {
 
     //Inject all
+    private ShortageForecastRepository repository;
     private DemandDao demandDao;
     private ShortageDao shortageDao;
     private StockService stockService;
-    private ProductionDao productionDao;
 
     private NotificationsService notificationService;
     private JiraService jiraService;
@@ -100,12 +100,13 @@ public class LogisticServiceImpl implements LogisticService {
     private void processShortages(String productRefNo) {
         LocalDate today = LocalDate.now(clock);
         CurrentStock stock = stockService.getCurrentStock(productRefNo);
-        List<ShortageEntity> shortages = ShortageFinder.findShortages(
-                today, confShortagePredictionDaysAhead,
-                stock,
-                productionDao.findFromTime(productRefNo, today.atStartOfDay()),
-                demandDao.findFrom(today.atStartOfDay(), productRefNo),
-                productRefNo);
+
+        ShortageForecast shortageForecast = repository.get(
+                productRefNo,
+                confShortagePredictionDaysAhead
+        );
+
+        List<ShortageEntity> shortages = shortageForecast.findShortages();
 
         List<ShortageEntity> previous = shortageDao.getForProduct(productRefNo);
         if (!shortages.isEmpty() && !shortages.equals(previous)) {
