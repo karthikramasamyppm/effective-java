@@ -4,6 +4,7 @@ import cucumber.api.PendingException;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import delivery.planning.ProductRefNo;
 import lombok.Value;
 import org.mockito.Mockito;
 
@@ -14,6 +15,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ClosingPlanSteps {
 
@@ -22,10 +24,16 @@ public class ClosingPlanSteps {
     private final LocalDate date = LocalDate.now(clock);
     private DeliveryEvents events = Mockito.mock(DeliveryEvents.class);
     private DemandForecasting forecasting = Mockito.mock(DemandForecasting.class);
+    private List<ProductAmount> planned = List.of();
+    private List<ProductAmount> demands = List.of();
 
     @When("^plan is closing$")
     public void planIsClosing() throws Throwable {
-        PlanCompleteness completeness = new PlanCompleteness(date);
+        PlanCompleteness completeness = new PlanCompleteness(
+                date,
+                ProductAmount.toAmounts(planned),
+                ProductAmount.toAmounts(demands)
+        );
         DeliveryPlan subject = new DeliveryPlan(
                 date,
                 completeness,
@@ -39,7 +47,7 @@ public class ClosingPlanSteps {
     @Then("^planning is completed$")
     public void planningIsCompleted() throws Throwable {
         Mockito.verify(events)
-                .emit(Mockito.eq(new PlanningCompleted()));
+                .emit(Mockito.eq(new PlanningCompleted(date, ProductAmounts.of(Map.of()))));
     }
 
     @Then("^planning is NOT completed$")
@@ -60,7 +68,7 @@ public class ClosingPlanSteps {
 
     @Given("^customers demands:$")
     public void customersDemands(List<ProductAmount> demands) throws Throwable {
-
+        this.demands = demands;
     }
 
     @Given("^reminders from previous day:$")
@@ -70,7 +78,7 @@ public class ClosingPlanSteps {
 
     @Given("^amounts delivered according to plan$")
     public void amountsDeliveredAccordingToPlan(List<ProductAmount> planned) throws Throwable {
-
+        this.planned = planned;
     }
 
     @When("^customer decided to adjust demands for: \"([^\"]*)\"$")
@@ -97,5 +105,13 @@ public class ClosingPlanSteps {
     static class ProductAmount {
         String product;
         long amount;
+
+        static ProductAmounts toAmounts(List<ProductAmount> amounts) {
+            return ProductAmounts.of(amounts.stream()
+                    .collect(Collectors.toMap(
+                            pro -> new ProductRefNo(pro.getProduct()),
+                            ProductAmount::getAmount
+                    )));
+        }
     }
 }
