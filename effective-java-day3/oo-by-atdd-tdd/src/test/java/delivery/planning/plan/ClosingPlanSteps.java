@@ -6,6 +6,8 @@ import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import delivery.planning.ProductRefNo;
 import lombok.Value;
+import org.assertj.core.api.Assertions;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.time.Clock;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ClosingPlanSteps {
 
@@ -27,8 +30,14 @@ public class ClosingPlanSteps {
     private List<ProductAmount> planned = List.of();
     private List<ProductAmount> demands = List.of();
 
+    ArgumentCaptor<PlanningCompleted> event = ArgumentCaptor.forClass(PlanningCompleted.class);
+    ArgumentCaptor<AdjustDemands> outgoingCommand = ArgumentCaptor.forClass(AdjustDemands.class);
+    private Set<ProductRefNo> reminderForRefNos = Set.of();
+    private Set<ProductRefNo> adjustDemandForRefNos = Set.of();
+
     @When("^plan is closing$")
     public void planIsClosing() throws Throwable {
+
         PlanCompleteness completeness = new PlanCompleteness(
                 date,
                 ProductAmount.toAmounts(planned),
@@ -40,14 +49,12 @@ public class ClosingPlanSteps {
                 events,
                 forecasting
         );
-
-        subject.close(new ClosePlan(Set.of(), Set.of()));
+        subject.close(new ClosePlan(reminderForRefNos, adjustDemandForRefNos));
     }
 
     @Then("^planning is completed$")
     public void planningIsCompleted() throws Throwable {
-        Mockito.verify(events)
-                .emit(Mockito.eq(new PlanningCompleted(date, ProductAmounts.of(Map.of()))));
+        Mockito.verify(events).emit(event.capture());
     }
 
     @Then("^planning is NOT completed$")
@@ -63,7 +70,16 @@ public class ClosingPlanSteps {
 
     @Then("^there was no need for reminder for next day$")
     public void thereWasNoNeedForReminderForNextDay() throws Throwable {
-        throw new PendingException("step not implemented");
+        Assertions.assertThat(event.getValue().getReminder())
+                .isEqualTo(ProductAmounts.empty());
+    }
+
+    @Then("^reminder of (\\d+) for \"([^\"]*)\" was saved$")
+    public void reminderOfForWasSaved(long amount, String refNo) throws Throwable {
+        ProductAmounts reminder = event.getValue().getReminder();
+
+        Assertions.assertThat(reminder.get(new ProductRefNo(refNo)))
+                .isEqualTo(amount);
     }
 
     @Given("^customers demands:$")
@@ -83,22 +99,25 @@ public class ClosingPlanSteps {
 
     @When("^customer decided to adjust demands for: \"([^\"]*)\"$")
     public void customerDecidedToAdjustDemandsFor(String refNos) throws Throwable {
-        throw new PendingException("step not implemented");
+        adjustDemandForRefNos = Stream.of(refNos.split(", *"))
+                .map(ProductRefNo::new)
+                .collect(Collectors.toSet());
     }
 
     @When("^customer decided to deliver missing pieces for next day: \"([^\"]*)\"$")
     public void customerDecidedToDeliverMissingPiecesForNextDay(String refNos) throws Throwable {
-        throw new PendingException("step not implemented");
+        reminderForRefNos = Stream.of(refNos.split(", *"))
+                .map(ProductRefNo::new)
+                .collect(Collectors.toSet());
     }
 
     @Then("^demand for \"([^\"]*)\" was adjusted to (\\d+)$")
     public void demandForWasAdjustedTo(String refNo, long amount) throws Throwable {
-        throw new PendingException("step not implemented");
-    }
+        Mockito.verify(forecasting).adjustDemand(outgoingCommand.capture());
 
-    @Then("^reminder of (\\d+) for \"([^\"]*)\" was saved$")
-    public void reminderOfForWasSaved(long amount, String refNo) throws Throwable {
-        throw new PendingException("step not implemented");
+        Assertions.assertThat(outgoingCommand.getValue().getDate()).isEqualTo(date);
+        Assertions.assertThat(outgoingCommand.getValue().getAmounts().get(new ProductRefNo(refNo)))
+                .isEqualTo(amount);
     }
 
     @Value

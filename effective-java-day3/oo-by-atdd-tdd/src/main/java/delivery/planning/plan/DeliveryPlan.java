@@ -25,7 +25,9 @@ public class DeliveryPlan {
 
         ProductAmounts toRemind = completeness
                 .diffFor(close.productsWithDecisionToMakeReminder());
-        ProductAmounts restOfDiff = completeness.diffExcept(toRemind.products());
+        ProductAmounts restOfDiff = completeness
+                .diffExcept(toRemind.products())
+                .subsetExcept(toAdjust.products());
 
         if (restOfDiff.anyProduct()) {
             return ClosePlanResult.demandsAreNotFulfilled(restOfDiff);

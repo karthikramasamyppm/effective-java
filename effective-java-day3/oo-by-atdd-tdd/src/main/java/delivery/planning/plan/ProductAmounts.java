@@ -17,6 +17,10 @@ public class ProductAmounts {
 
     private final Map<ProductRefNo, Long> amounts;
 
+    public static ProductAmounts empty() {
+        return new ProductAmounts(Map.of());
+    }
+
     public static ProductAmounts of(Map<ProductRefNo, Long> amounts) {
         return new ProductAmounts(
                 amounts.entrySet()
@@ -82,5 +86,9 @@ public class ProductAmounts {
                         Map.Entry::getKey,
                         Map.Entry::getValue
                 )));
+    }
+
+    public long get(ProductRefNo refNo) {
+        return amounts.getOrDefault(refNo, 0L);
     }
 }

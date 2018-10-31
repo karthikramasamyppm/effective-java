@@ -1,13 +1,11 @@
 package delivery.planning.plan;
 
+import lombok.Value;
+
 import java.time.LocalDate;
 
+@Value
 public class AdjustDemands {
-    private final LocalDate date;
-    private final ProductAmounts amounts;
-
-    public AdjustDemands(LocalDate date, ProductAmounts amounts) {
-        this.date = date;
-        this.amounts = amounts;
-    }
+    LocalDate date;
+    ProductAmounts amounts;
 }
