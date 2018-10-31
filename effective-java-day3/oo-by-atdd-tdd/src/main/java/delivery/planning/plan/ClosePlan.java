@@ -1,19 +1,20 @@
 package delivery.planning.plan;
 
+import delivery.planning.ProductRefNo;
 import lombok.Value;
 
 import java.util.Set;
 
 @Value
 public class ClosePlan {
-    Set<String> reminderForRefNos;
-    Set<String> adjustDemandForRefNos;
+    Set<ProductRefNo> reminderForRefNos;
+    Set<ProductRefNo> adjustDemandForRefNos;
 
-    public Set<String> decisionToDeliverDiffNextDay() {
+    public Set<ProductRefNo> productsWithDecisionToMakeReminder() {
         return reminderForRefNos;
     }
 
-    public Set<String> decisionToAdjustDemands() {
+    public Set<ProductRefNo> productsWithDecisionToAdjust() {
         return adjustDemandForRefNos;
     }
 }
